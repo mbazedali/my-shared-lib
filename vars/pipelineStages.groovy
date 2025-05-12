@@ -47,20 +47,22 @@ def prepareDeployTarget() {
 
 //Deploy to prod (only on master + ENV=prod)
 def deploy() {
-    node {
+    if (env.BRANCH_NAME == 'master' && env.ENV == 'prod') {
         stage('Deploy') {
-            if (env.BRANCH_NAME == 'master' && env.ENV == 'prod') {
-                echo "Deploying ${env.APP_NAME} to ${env.DEPLOY_TARGET}"
-                sh "mkdir -p ${env.DEPLOY_DIR}"
-                script {
-                    def pom = readMavenPom file: 'pom.xml'
-                    def jarFile = "target/${pom.artifactId}-${pom.version}.jar"
+            echo "Deploying ${env.APP_NAME} to ${env.DEPLOY_TARGET}"
+            sh "mkdir -p ${env.DEPLOY_DIR}"
+            script {
+                def pom = readMavenPom file: 'pom.xml'
+                def jarFile = "target/${pom.artifactId}-${pom.version}.jar"
+                if (fileExists("${jarFile}")) {
                     sh "cp ${jarFile} ${env.DEPLOY_TARGET}"
+                } else {
+                    error "Deployment failed, ${jarFile} does not exist."
                 }
-            } else {
-                echo "Skipping deployment as the conditions were not met."
             }
         }
+    } else {
+        echo "Skipping deployment as the conditions were not met."
     }
 }
 
